@@ -1,19 +1,65 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import './AddAddress.css'; 
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate, useLocation, useParams } from 'react-router-dom';
+import API from '../../api/axios';
+import './AddAddress.css';
 
 const EditAddress = () => {
-  
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { id } = useParams();
+
+  const targetAddress = location.state?.address;
+  const addressId = id || targetAddress?._id || targetAddress?.id;
+
   const [addressData, setAddressData] = useState({
-    houseName: 'Green Villa',
-    locality: 'MG Road',
-    city: 'Kochi',
-    state: 'Kerala',
+    name: '',
+    phone: '',
+    houseName: '',
+    locality: '',
+    city: '',
+    state: '',
     country: 'India',
-    pincode: '682001'
+    pincode: ''
   });
 
-  const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (targetAddress) {
+      setAddressData({
+        name: targetAddress.name || '',
+        phone: targetAddress.phone || '',
+        houseName: targetAddress.houseName || targetAddress.addressLine || '',
+        locality: targetAddress.locality || targetAddress.street || '',
+        city: targetAddress.city || '',
+        state: targetAddress.state || '',
+        country: targetAddress.country || 'India',
+        pincode: targetAddress.pincode || ''
+      });
+    } else if (addressId) {
+      const fetchSingleAddress = async () => {
+        try {
+          const res = await API.get(`/user/address/${addressId}`);
+          const addr = res.data?.address || res.data;
+          if (addr) {
+            setAddressData({
+              name: addr.name || '',
+              phone: addr.phone || '',
+              houseName: addr.houseName || addr.addressLine || '',
+              locality: addr.locality || addr.street || '',
+              city: addr.city || '',
+              state: addr.state || '',
+              country: addr.country || 'India',
+              pincode: addr.pincode || ''
+            });
+          }
+        } catch (err) {
+          console.error('Error fetching address:', err);
+        }
+      };
+      fetchSingleAddress();
+    }
+  }, [addressId, targetAddress]);
 
   const handleChange = (e) => {
     setAddressData({
@@ -22,43 +68,67 @@ const EditAddress = () => {
     });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log('Updated Address:', addressData);
-    alert('Address updated successfully!');
-    navigate('/manage-address');
+
+    if (!addressId) {
+      alert('Address ID not found!');
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const payload = {
+        name: addressData.name,
+        phone: addressData.phone,
+        houseName: addressData.houseName,
+        locality: addressData.locality,
+        city: addressData.city,
+        state: addressData.state,
+        country: addressData.country,
+        pincode: addressData.pincode,
+        isDefault: false
+      };
+
+      const res = await API.put(`/user/address/${addressId}`, payload);
+
+      if (res.status === 200 || res.data?.success) {
+        alert('Address updated successfully!');
+        navigate('/manage-address');
+      }
+    } catch (error) {
+      console.error('Error updating address:', error);
+      alert(error.response?.data?.message || 'Failed to update address');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleLogout = () => {
+    localStorage.clear();
     navigate('/login');
   };
 
   return (
     <div className="account-page">
-      <header className="auth-navbar">
-        <nav className="nav-links">
-          <Link to="/">Home</Link>
-          <a href="#shop">Shop</a>
-          <a href="#contact">Contact Us</a>
-          <a href="#about">About Us</a>
-        </nav>
-        <div className="logo"><span>🎒 BagHub</span></div>
-        <div className="nav-icons"><span>🛒</span><span>👤</span><span>❤️</span></div>
-      </header>
-
       <main className="account-wrapper">
         <div className="account-container">
           <aside className="account-sidebar">
             <h3 className="sidebar-title">My Account</h3>
             <ul className="sidebar-menu">
               <li><Link to="/profile">👤 Personal Information</Link></li>
-              <li className="active"><Link to="/manage-address">📱 Address</Link></li>
-              <li><Link to="/orders">📦 Order</Link></li>
+              <li className="active"><Link to="/manage-address">📍 Address</Link></li>
+              <li><Link to="/my-orders">📦 Order</Link></li>
               <li><Link to="/wallet">💳 Wallet</Link></li>
               <li><Link to="/coupons">🎟️ Coupon</Link></li>
               <li><Link to="/referral">🎁 Referral Program</Link></li>
               <li><Link to="/password-change">🔑 Password Change</Link></li>
-              <li><button onClick={handleLogout} className="logout-btn">🔄 Logout</button></li>
+              <li>
+                <button onClick={handleLogout} className="logout-btn">
+                  🚪 Logout
+                </button>
+              </li>
             </ul>
           </aside>
 
@@ -67,8 +137,36 @@ const EditAddress = () => {
               <h2 className="content-title">Edit Address</h2>
 
               <form onSubmit={handleSubmit} className="add-address-form">
+                <div className="form-row">
+                  <div className="form-group">
+                    <label htmlFor="name">Full Name</label>
+                    <input
+                      type="text"
+                      id="name"
+                      name="name"
+                      value={addressData.name}
+                      onChange={handleChange}
+                      className="account-input"
+                      required
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label htmlFor="phone">Phone Number</label>
+                    <input
+                      type="text"
+                      id="phone"
+                      name="phone"
+                      value={addressData.phone}
+                      onChange={handleChange}
+                      className="account-input"
+                      required
+                    />
+                  </div>
+                </div>
+
                 <div className="form-group">
-                  <label htmlFor="houseName">House Name</label>
+                  <label htmlFor="houseName">House Name / Flat No.</label>
                   <input
                     type="text"
                     id="houseName"
@@ -81,7 +179,7 @@ const EditAddress = () => {
                 </div>
 
                 <div className="form-group">
-                  <label htmlFor="locality">Locality/Street</label>
+                  <label htmlFor="locality">Locality / Street</label>
                   <input
                     type="text"
                     id="locality"
@@ -94,7 +192,7 @@ const EditAddress = () => {
                 </div>
 
                 <div className="form-group">
-                  <label htmlFor="city">Town/City</label>
+                  <label htmlFor="city">Town / City</label>
                   <input
                     type="text"
                     id="city"
@@ -148,8 +246,8 @@ const EditAddress = () => {
                 </div>
 
                 <div className="form-action">
-                  <button type="submit" className="save-btn">
-                    Update Address
+                  <button type="submit" className="save-btn" disabled={loading}>
+                    {loading ? 'Updating...' : 'Update Address'}
                   </button>
                 </div>
               </form>
@@ -157,11 +255,6 @@ const EditAddress = () => {
           </section>
         </div>
       </main>
-
-      <footer className="footer">
-        <div className="footer-logo"><h2>🎒 BagHub</h2></div>
-        <div className="footer-bottom"><p>© 2026 baghub . All Rights Reserved.</p></div>
-      </footer>
     </div>
   );
 };

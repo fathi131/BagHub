@@ -1,9 +1,20 @@
 import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import './Sidebar.css';
 
 const Sidebar = () => {
   const location = useLocation();
+  const navigate = useNavigate();
+
+  // Logout Handler Function
+  const handleLogout = () => {
+   
+    localStorage.removeItem('token');
+    localStorage.removeItem('user'); 
+
+    
+    navigate('/admin/login',{replace:true}); 
+  };
 
   return (
     <aside className="admin-sidebar">
@@ -41,7 +52,15 @@ const Sidebar = () => {
         <li className={location.pathname === '/admin/sales-report' ? 'active' : ''}>
           <Link to="/admin/sales-report">Sales Report</Link>
         </li>
-        <li className="logout-item">Logout</li>
+
+        {/* Updated Logout Item with onClick */}
+        <li 
+          className="logout-item" 
+          onClick={handleLogout}
+          style={{ cursor: 'pointer' }}
+        >
+          Logout
+        </li>
       </ul>
     </aside>
   );

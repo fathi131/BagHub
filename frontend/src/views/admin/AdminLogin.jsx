@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import axios from 'axios';
 import './AdminLogin.css';
 
 const AdminLogin = () => {
@@ -10,17 +11,45 @@ const AdminLogin = () => {
 
   const navigate = useNavigate();
 
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+
+    if (token && (user.isAdmin || user.role === 'admin')) {
+      navigate('/admin/dashboard', { replace: true });
+    }
+  }, [navigate]);
+
   const handleChange = (e) => {
     setCredentials({ ...credentials, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (credentials.email === 'admin@baghub.com' && credentials.password === 'admin123') {
-      alert('Admin Login Successful!');
-      navigate('/admin/users');
-    } else {
-      alert('Invalid Admin Credentials!');
+
+    try {
+      const response = await axios.post('http://localhost:5000/api/admin/login', {
+        email: credentials.email,
+        password: credentials.password
+      });
+
+      const { token, user } = response.data;
+
+      if (user && (user.isAdmin || user.role === 'admin')) {
+        
+        localStorage.setItem('token', token);
+        localStorage.setItem('user', JSON.stringify(user));
+
+        alert('Admin Login Successful!');
+
+        
+        navigate('/admin/dashboard', { replace: true });
+      } else {
+        alert('Access Denied: You do not have Admin privileges!');
+      }
+    } catch (error) {
+      console.error('Admin Login Error:', error);
+      alert(error.response?.data?.message || 'Invalid Admin Credentials!');
     }
   };
 

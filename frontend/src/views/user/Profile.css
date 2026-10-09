@@ -93,6 +93,72 @@
   color: #000;
 }
 
+.profile-photo-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin: -18px auto 28px;
+}
+
+.profile-photo {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #d1d5db;
+}
+
+.profile-photo-fallback {
+  display: grid;
+  place-items: center;
+  background: #e8f0ee;
+  color: #004d40;
+  font-size: 34px;
+  font-weight: 600;
+}
+
+.profile-photo-button,
+.profile-address-heading button {
+  border: 0;
+  background: none;
+  color: #004d40;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: underline;
+}
+
+.profile-photo-input {
+  display: none;
+}
+
+.profile-address-section {
+  max-width: 450px;
+  margin: 35px auto 0;
+  padding-top: 20px;
+  border-top: 1px solid #d1d5db;
+  color: #333;
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.profile-address-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.profile-address-heading h4 {
+  font-size: 15px;
+}
+
+.profile-address-section address {
+  font-style: normal;
+}
+
 /* Form Controls */
 .personal-info-form {
   max-width: 450px;

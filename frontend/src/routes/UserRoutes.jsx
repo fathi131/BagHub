@@ -1,5 +1,5 @@
-import React from "react";
-import { Routes, Route, Outlet } from "react-router-dom";
+import { Routes, Route, Outlet, Navigate } from "react-router-dom";
+import { hasValidAuthToken } from "../services/authSession";
 
 // Common Header & Footer
 import Navbar from "../components/Navbar";
@@ -21,6 +21,33 @@ import PasswordChange from "../views/user/PasswordChange";
 import EditAddress from "../views/user/EditAddress";
 import EditProfile from "../views/user/EditProfile";
 import VerifyEmailOtp from "../views/user/VerifyEmailOtp";
+import CategoryPage from '../views/user/CategoryPage';
+import ProductDetails from "../views/user/ProductDetails";
+import CartPage from '../views/user/CartPage';
+import WishlistPage from '../views/user/WishlistPage';
+import CheckoutPage from '../views/user/CheckoutPage';
+import PaymentPage from '../views/user/PaymentPage';
+import OrderSuccessPage from "../views/user/OrderSuccessPage";
+import PaymentFailedPage from "../views/user/PaymentFailedPage";
+import MyOrdersPage from "../views/user/MyOrdersPage";
+import OrderDetailsPage from "../views/user/OrderDetailsPage";
+import CancelConfirmationPage from "../views/user/CancelConfirmationPage";
+import ViewReturnOrderPage from '../views/user/ViewReturnOrderPage';
+import ReturnOrderPage from "../views/user/ReturnOrderPage";
+import WriteReviewPage from "../views/user/WriteReviewPage";
+import Wallet from '../views/user/Wallet';
+import ReferralProgram from "../views/user/ReferralProgram";
+import UserCouponsPage from "../views/user/UserCouponsPage";
+
+
+const PublicRoute = ({ children }) => {
+  return hasValidAuthToken() ? <Navigate to="/home" replace /> : children;
+};
+
+
+const ProtectedRoute = ({ children }) => {
+  return hasValidAuthToken() ? children : <Navigate to="/login" replace />;
+};
 
 // Common Layout Component
 const UserLayout = () => {
@@ -39,21 +66,46 @@ function UserRoutes() {
   return (
     <Routes>
       <Route element={<UserLayout />}>
-        <Route path="/" element={<Landing />} />
+        {/* Open Routes */}
+        <Route path="/" element={<Home />} />
+        <Route path="/landing" element={<PublicRoute><Landing /></PublicRoute>} />
         <Route path="/home" element={<Home />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/signup" element={<SignUp />} />
-        <Route path="/verify-otp" element={<OtpVerification />} />
+        <Route path="/category" element={<CategoryPage />} />
+        <Route path="/products" element={<CategoryPage/>} />
+        <Route path="/product/:id" element={<ProductDetails />} />
+
+       
+        <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
+        <Route path="/signup" element={<PublicRoute><SignUp /></PublicRoute>} />
+        <Route path="/verify-otp" element={<PublicRoute><OtpVerification /></PublicRoute>} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/forgot-password-otp" element={<ForgotPasswordOtp />} />
         <Route path="/reset-password" element={<ResetPassword />} />
-        <Route path="/profile" element={<Profile />} />
-        <Route path="/manage-address" element={<Address />} />
-        <Route path="/add-address" element={<AddAddress />} />
-        <Route path="/password-change" element={<PasswordChange />} />
-        <Route path="/edit-address" element={<EditAddress />} />
-        <Route path="/edit-profile" element={<EditProfile />} />
-        <Route path="/verify-email-otp" element={<VerifyEmailOtp />} />
+
+        
+        <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+        <Route path="/manage-address" element={<ProtectedRoute><Address /></ProtectedRoute>} />
+        <Route path="/add-address" element={<ProtectedRoute><AddAddress /></ProtectedRoute>} />
+        <Route path="/password-change" element={<ProtectedRoute><PasswordChange /></ProtectedRoute>} />
+        <Route path="/edit-address" element={<ProtectedRoute><EditAddress /></ProtectedRoute>} />
+        <Route path="/edit-address/:id" element={<ProtectedRoute><EditAddress /></ProtectedRoute>} />
+        <Route path="/edit-profile" element={<ProtectedRoute><EditProfile /></ProtectedRoute>} />
+        <Route path="/verify-email-otp" element={<ProtectedRoute><VerifyEmailOtp /></ProtectedRoute>} />
+        <Route path="/cart" element={<ProtectedRoute><CartPage /></ProtectedRoute>} />
+        <Route path="/wishlist" element={<ProtectedRoute><WishlistPage /></ProtectedRoute>} />
+        <Route path="/checkout" element={<ProtectedRoute><CheckoutPage /></ProtectedRoute>} />
+        <Route path="/payment" element={<ProtectedRoute><PaymentPage /></ProtectedRoute>} />
+        <Route path="/order-success" element={<ProtectedRoute><OrderSuccessPage /></ProtectedRoute>} />
+        <Route path="/payment-failed" element={<ProtectedRoute><PaymentFailedPage /></ProtectedRoute>} />
+        <Route path="/my-orders" element={<ProtectedRoute><MyOrdersPage /></ProtectedRoute>} />
+        <Route path="/order-details/:id" element={<ProtectedRoute><OrderDetailsPage /></ProtectedRoute>} />
+        <Route path="/cancel-order/:id" element={<ProtectedRoute><CancelConfirmationPage /></ProtectedRoute>} />
+        <Route path="/view-return-order/:id" element={<ProtectedRoute><ViewReturnOrderPage /></ProtectedRoute>} />
+        <Route path="/return-order/:id" element={<ProtectedRoute><ReturnOrderPage /></ProtectedRoute>} />
+        <Route path="/write-review/:id" element={<ProtectedRoute><WriteReviewPage /></ProtectedRoute>} />
+        <Route path="/wallet" element={<ProtectedRoute><Wallet /></ProtectedRoute>} />
+        <Route path="/coupons" element={<ProtectedRoute><UserCouponsPage /></ProtectedRoute>} />
+        <Route path="/referral" element={<ProtectedRoute><ReferralProgram /></ProtectedRoute>} />
       </Route>
     </Routes>
   );

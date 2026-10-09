@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import React, { useState, useEffect, useCallback } from 'react';
+import API from '../../api/axios'; // Centralized Axios Instance with auth headers/interceptors
 import './AdminCustomers.css';
 
 const AdminCustomers = () => {
@@ -15,56 +15,67 @@ const AdminCustomers = () => {
     name: '',
     email: '',
     phone: '',
+    address: '',
     password: ''
   });
 
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await axios.get(
-        `http://localhost:5000/api/admin/users?search=${search}&page=${page}&limit=5`
-      );
-      setUsers(response.data.users);
-      setTotalPages(response.data.totalPages);
+      // Relative path use path according to your API instance baseURL
+      const response = await API.get(`/admin/users`, {
+        params: { search, page, limit: 5 }
+      });
+
+      console.log('API Response:', response.data);
+
+      // Safe extraction of users list and pagination
+      const userData = Array.isArray(response.data)
+        ? response.data
+        : response.data.users || response.data.data || [];
+
+      const total = response.data.totalPages || response.data.pages || 1;
+
+      setUsers(userData);
+      setTotalPages(total);
     } catch (error) {
       console.error('Error fetching users:', error);
+      setUsers([]);
     } finally {
       setLoading(false);
     }
-  };
+  }, [search, page]);
 
   useEffect(() => {
     fetchUsers();
-  }, [search, page]);
+  }, [fetchUsers]);
 
-  
   const handleToggleBlock = async (id, currentStatus, name) => {
     const actionText = currentStatus ? 'unblock' : 'block';
     if (window.confirm(`Are you sure you want to ${actionText} ${name}?`)) {
       try {
-        await axios.patch(`http://localhost:5000/api/admin/users/${id}/block`, {
+        await API.patch(`/admin/users/${id}/block`, {
           isBlocked: !currentStatus
         });
         fetchUsers();
       } catch (error) {
         console.error('Error updating status:', error);
+        alert('Failed to update block status');
       }
     }
   };
 
-  // Search input clear ചെയ്യാനുള്ള ഫംഗ്ഷൻ
   const handleClearSearch = () => {
     setSearch('');
     setPage(1);
   };
 
-  // Add User Form Submit ചെയ്യുമ്പോൾ
   const handleAddUserSubmit = async (e) => {
     e.preventDefault();
     try {
-      await axios.post('http://localhost:5000/api/admin/users', formData);
+      await API.post('/admin/users', formData);
       setShowModal(false);
-      setFormData({ name: '', email: '', phone: '', password: '' });
+      setFormData({ name: '', email: '', phone: '', address: '', password: '' });
       fetchUsers();
     } catch (error) {
       alert(error.response?.data?.message || 'Error adding user');
@@ -116,17 +127,17 @@ const AdminCustomers = () => {
           <tbody>
             {users.length > 0 ? (
               users.map((user, index) => (
-                <tr key={user._id}>
+                <tr key={user._id || index}>
                   <td>{(page - 1) * 5 + index + 1}</td>
-                  <td>{user.name}</td>
-                  <td>{user.email}</td>
-                  <td>{user.phone || '879877653'}</td>
-                  <td>{user.address || 'Karkode, 670702, Kannur'}</td>
+                  <td>{user.name || user.username || 'N/A'}</td>
+                  <td>{user.email || 'N/A'}</td>
+                  <td>{user.phone || user.mobile || 'N/A'}</td>
+                  <td>{user.address || 'N/A'}</td>
                   <td>
                     <button
                       className={user.isBlocked ? 'btn-unblock' : 'btn-block'}
                       onClick={() =>
-                        handleToggleBlock(user._id, user.isBlocked, user.name)
+                        handleToggleBlock(user._id, user.isBlocked, user.name || user.username)
                       }
                     >
                       {user.isBlocked ? 'UNBLOCK' : 'BLOCK'}
@@ -210,18 +221,17 @@ const AdminCustomers = () => {
                   }
                 />
               </div>
-                  <div className="form-group">
-          <label>Address</label>
-          <input
-            type="text"
-            required
-            value={formData.address || ''}
-            onChange={(e) =>
-              setFormData({ ...formData, address: e.target.value })
-            }
-          />
-        </div>
-
+              <div className="form-group">
+                <label>Address</label>
+                <input
+                  type="text"
+                  required
+                  value={formData.address || ''}
+                  onChange={(e) =>
+                    setFormData({ ...formData, address: e.target.value })
+                  }
+                />
+              </div>
               <div className="form-group">
                 <label>Password</label>
                 <input

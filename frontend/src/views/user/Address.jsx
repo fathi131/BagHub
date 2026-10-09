@@ -1,31 +1,68 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import API from '../../api/axios'; 
 import './Address.css';
 
 const Address = () => {
   const navigate = useNavigate();
+  const [addresses, setAddresses] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  // Demo Address List
-  const [addresses, setAddresses] = useState([
-    {
-      id: 1,
-      name: 'John Doe',
-      phone: '+91 9876543210',
-      pincode: '682001',
-      addressLine: '123 Green Street, MG Road',
-      city: 'Kochi',
-      state: 'Kerala',
-      isDefault: true
-    }
-  ]);
+  
+useEffect(() => {
+  const fetchAddresses = async () => {
+  try {
+    setLoading(true);   
+    
+    
+    const token = localStorage.getItem('token'); 
 
+    // API Call
+    const response = await API.get('/user/address', {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    });
+
+    console.log("FETCHED DATA:", response.data);
+
+    
+    const addressList = response.data.addresses || response.data || [];
+    setAddresses(addressList);
+  } catch (error) {
+    console.error("Error fetching addresses:", error);
+  } finally {
+   
+    setLoading(false); 
+  }
+};
+
+  fetchAddresses();
+}, []);
   const handleLogout = () => {
     localStorage.clear();
     navigate('/login');
   };
 
-  const handleDelete = (id) => {
-    setAddresses(addresses.filter((addr) => addr.id !== id));
+  // 2. Delete Address Function
+  const handleDelete = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this address?')) return;
+
+    try {
+      await API.delete(`/user/address/${id}`);
+      
+      setAddresses((prev) => prev.filter((addr) => (addr._id || addr.id) !== id));
+    } catch (error) {
+      console.error('Error deleting address:', error);
+      alert(error.response?.data?.message || 'Failed to delete address');
+    }
+  };
+
+  
+  const handleEdit = (addr) => {
+    const addressId = addr._id || addr.id;
+    
+    navigate(`/edit-address/${addressId}`, { state: { address: addr } });
   };
 
   return (
@@ -54,7 +91,7 @@ const Address = () => {
                 </Link>
               </li>
               <li>
-                <Link to="/orders">
+                <Link to="/my-orders">
                   <span className="icon">📦</span> Order
                 </Link>
               </li>
@@ -94,29 +131,46 @@ const Address = () => {
             </div>
 
             <div className="address-list">
-              {addresses.length === 0 ? (
+              {loading ? (
+                <p>Loading addresses...</p>
+              ) : addresses.length === 0 ? (
                 <p className="no-address-text">No addresses saved yet.</p>
               ) : (
-                addresses.map((addr) => (
-                  <div key={addr.id} className="address-card" style={{ border: '1px solid #ccc', padding: '15px', borderRadius: '10px', marginBottom: '15px' }}>
-                    {addr.isDefault && <span className="default-badge" style={{ background: '#000', color: '#fff', fontSize: '10px', padding: '2px 8px', borderRadius: '4px' }}>DEFAULT</span>}
-                    <h4 style={{ margin: '8px 0' }}>{addr.name}</h4>
-                    <p style={{ margin: '4px 0', fontSize: '13px', color: '#555' }}>{addr.addressLine}, {addr.city}</p>
-                    <p style={{ margin: '4px 0', fontSize: '13px', color: '#555' }}>{addr.state} - {addr.pincode}</p>
-                    <p style={{ margin: '4px 0', fontSize: '13px', color: '#555' }}>Phone: {addr.phone}</p>
+                addresses.map((addr) => {
+                  const addrId = addr._id || addr.id;
+                  return (
+                    <div key={addrId} className="address-card" style={{ border: '1px solid #ccc', padding: '15px', borderRadius: '10px', marginBottom: '15px' }}>
+                      {addr.isDefault && <span className="default-badge" style={{ background: '#000', color: '#fff', fontSize: '10px', padding: '2px 8px', borderRadius: '4px' }}>DEFAULT</span>}
+                      <h4 style={{ margin: '8px 0' }}>{addr.name}</h4>
+                      <p style={{ margin: '4px 0', fontSize: '13px', color: '#555' }}>
+                        {addr.addressLine || addr.street}, {addr.city}
+                      </p>
+                      <p style={{ margin: '4px 0', fontSize: '13px', color: '#555' }}>
+                        {addr.state} - {addr.pincode}
+                      </p>
+                      <p style={{ margin: '4px 0', fontSize: '13px', color: '#555' }}>
+                        Phone: {addr.phone}
+                      </p>
 
-                    <div className="address-card-actions" style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
-                      <button className="edit-btn" onClick={() => navigate('/edit-address')} style={{ cursor: 'pointer' }}>Edit</button>
-                      <button 
-                        className="delete-btn" 
-                        onClick={() => handleDelete(addr.id)}
-                        style={{ color: 'red', cursor: 'pointer' }}
-                      >
-                        Delete
-                      </button>
+                      <div className="address-card-actions" style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+                        <button 
+                          className="edit-btn" 
+                          onClick={() => handleEdit(addr)} 
+                          style={{ cursor: 'pointer' }}
+                        >
+                          Edit
+                        </button>
+                        <button 
+                          className="delete-btn" 
+                          onClick={() => handleDelete(addrId)}
+                          style={{ color: 'red', cursor: 'pointer' }}
+                        >
+                          Delete
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
           </section>

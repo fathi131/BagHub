@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import API from '../../api/axios';
 import './PasswordChange.css';
 
 const PasswordChange = () => {
@@ -8,6 +9,7 @@ const PasswordChange = () => {
     newPassword: '',
     confirmPassword: ''
   });
+  const [loading, setLoading] = useState(false);
 
   const navigate = useNavigate();
 
@@ -15,18 +17,29 @@ const PasswordChange = () => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (formData.newPassword !== formData.confirmPassword) {
       alert('New passwords do not match!');
       return;
     }
-    console.log('Password updated successfully:', formData);
-    alert('Password updated successfully!');
-    setFormData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+    setLoading(true);
+    try {
+      const response = await API.patch('/user/change-password', {
+        currentPassword: formData.currentPassword,
+        newPassword: formData.newPassword
+      });
+      alert(response.data.message || 'Password updated successfully!');
+      setFormData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+    } catch (error) {
+      alert(error.response?.data?.message || 'Could not change password');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleLogout = () => {
+    ['token', 'role', 'isLoggedIn', 'user', 'googleToken'].forEach((key) => localStorage.removeItem(key));
     navigate('/login');
   };
 
@@ -45,7 +58,7 @@ const PasswordChange = () => {
               <Link to="/manage-address">📱 Address</Link>
             </li>
             <li>
-              <Link to="/orders">📦 Order</Link>
+              <Link to="/my-orders">📦 Order</Link>
             </li>
             <li>
               <Link to="/wallet">💳 Wallet</Link>
@@ -60,7 +73,7 @@ const PasswordChange = () => {
               <Link to="/password-change">🔑 Password Change</Link>
             </li>
             <li>
-              <button onClick={handleLogout} className="logout-btn">
+              <button type="button" onClick={handleLogout} className="logout-btn">
                 🔄 Logout
               </button>
             </li>
@@ -73,6 +86,9 @@ const PasswordChange = () => {
             <h2 className="content-title">Password Change</h2>
 
             <form onSubmit={handleSubmit} className="password-change-form">
+              <div className="password-recovery-link">
+                <Link to="/forgot-password">Forgot your current password?</Link>
+              </div>
               <div className="form-group">
                 <label htmlFor="currentPassword">Current Password</label>
                 <input
@@ -113,8 +129,8 @@ const PasswordChange = () => {
               </div>
 
               <div className="form-action">
-                <button type="submit" className="save-btn">
-                  Update Password
+                <button type="submit" className="save-btn" disabled={loading}>
+                  {loading ? 'Updating...' : 'Update Password'}
                 </button>
               </div>
             </form>

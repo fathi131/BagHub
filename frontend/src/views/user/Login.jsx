@@ -1,7 +1,13 @@
-import React, { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useGoogleLogin } from '@react-oauth/google';
-import axios from 'axios';
+import API from '../../api/axios';
+import {
+  authenticateWithFacebook,
+  authenticateWithGoogle,
+  persistUserSession
+} from '../../services/socialAuth';
+import { hasValidAuthToken } from '../../services/authSession';
 import './Login.css';
 
 const Login = () => {
@@ -13,25 +19,28 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
 
+  useEffect(() => {
+    const role = localStorage.getItem('role');
+
+    
+    if (hasValidAuthToken()) {
+      if (role === 'admin') {
+        navigate('/admin/dashboard', { replace: true });
+      } else {
+        navigate('/home', { replace: true });
+      }
+    }
+  }, [navigate]);
+
   const handleGoogleLogin = useGoogleLogin({
     onSuccess: async (tokenResponse) => {
-      console.log('Google Access Token:', tokenResponse.access_token);
-      
       try {
-        const res = await axios.get('https://www.googleapis.com/oauth2/v3/userinfo', {
-          headers: { Authorization: `Bearer ${tokenResponse.access_token}` }
-        });
-
-        localStorage.setItem('isLoggedIn', 'true');
-        localStorage.setItem('googleToken', tokenResponse.access_token);
-        localStorage.setItem('user', JSON.stringify({
-          name: res.data.name,
-          email: res.data.email
-        }));
-
+        const session = await authenticateWithGoogle(tokenResponse.access_token);
+        persistUserSession(session);
         navigate('/home', { replace: true });
       } catch (err) {
-        console.log('Google User Info Error:', err);
+        console.error('Google User Info Error:', err);
+        alert(err.response?.data?.message || err.message || 'Google login failed');
       }
     },
     onError: (error) => console.log('Google Login Failed:', error)
@@ -45,27 +54,29 @@ const Login = () => {
     e.preventDefault();
     
     try {
-      const res = await axios.post('http://localhost:5000/api/user/login', formData);
+      const res = await API.post('/user/login', formData);
 
       if (res.data) {
-        localStorage.setItem('isLoggedIn', 'true');
-        
-        localStorage.setItem('user', JSON.stringify({
-          name: res.data.name || res.data.username || 'hai',
-          email: res.data.email || formData.email
-        }));
-
-        navigate('/home', { replace: true });
+        persistUserSession(res.data);
+        if (res.data.user?.role === 'admin') {
+          navigate('/admin/dashboard', { replace: true });
+        } else {
+          navigate('/home', { replace: true });
+        }
       }
     } catch (error) {
       console.error('Login Error:', error);
-      
-      localStorage.setItem('isLoggedIn', 'true');
-      localStorage.setItem('user', JSON.stringify({
-        name: 'hai',
-        email: formData.email
-      }));
+      alert(error.response?.data?.message || 'Login failed. Please check your credentials.');
+    }
+  };
+
+  const handleFacebookLogin = async () => {
+    try {
+      const session = await authenticateWithFacebook();
+      persistUserSession(session);
       navigate('/home', { replace: true });
+    } catch (err) {
+      alert(err.response?.data?.message || err.message || 'Facebook login failed');
     }
   };
 
@@ -84,7 +95,6 @@ const Login = () => {
             required
           />
 
-          {/* Password Input with Show/Hide Toggle */}
           <div className="password-field-wrapper">
             <input
               type={showPassword ? 'text' : 'password'}
@@ -98,7 +108,7 @@ const Login = () => {
             <span
               className="password-toggle-icon"
               onClick={() => setShowPassword(!showPassword)}
-              style={{ fontSize: '13px', fontWeight: '600', color: '#007bff' }}
+              style={{ fontSize: '13px', fontWeight: '600', color: '#007bff', cursor: 'pointer' }}
             >
               {showPassword ? 'Hide' : 'Show'}
             </span>
@@ -116,6 +126,7 @@ const Login = () => {
 
           <div className="signup-prompt">
             <span>Don't have an account? </span>
+            {/* നിങ്ങളുടെ Register റൂട്ട് /signup ആണോ /register ആണോ എന്ന് ഉറപ്പുവരുത്തുക */}
             <Link to="/signup" className="signup-link">
               Sign Up
             </Link>
@@ -126,7 +137,6 @@ const Login = () => {
           <span>Or</span>
         </div>
 
-        {/* Google Login Button */}
         <button className="google-btn" type="button" onClick={() => handleGoogleLogin()}>
           <svg className="google-icon" viewBox="0 0 24 24">
             <path
@@ -147,6 +157,10 @@ const Login = () => {
             />
           </svg>
           <span>Continue with Google</span>
+        </button>
+        <button className="google-btn facebook-btn" type="button" onClick={handleFacebookLogin}>
+          <span className="facebook-icon" aria-hidden="true">f</span>
+          <span>Continue with Facebook</span>
         </button>
       </div>
     </main>

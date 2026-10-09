@@ -1,60 +1,72 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import API from '../../api/axios'; 
 import './AddAddress.css';
 
 const AddAddress = () => {
   const [addressData, setAddressData] = useState({
+    name: '',
+    phone: '',
     houseName: '',
     locality: '',
     city: '',
     state: '',
-    country: '',
-    pincode: ''
+    country: 'India',
+    pincode: '',
+    isDefault: false
   });
 
+  const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
   const navigate = useNavigate();
 
   const handleChange = (e) => {
-    setAddressData({
-      ...addressData,
-      [e.target.name]: e.target.value
-    });
+    const { name, value, type, checked } = e.target;
+    setAddressData((prevData) => ({
+      ...prevData,
+      [name]: type === 'checkbox' ? checked : value
+    }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log('New Address Added:', addressData);
-    alert('Address added successfully!');
-    navigate('/manage-address');
+    setLoading(true);
+    setErrorMsg('');
+
+    try {
+      const payload = {
+        name: addressData.name,
+        phone: addressData.phone,
+        houseName: addressData.houseName,
+        locality: addressData.locality,
+        city: addressData.city,
+        state: addressData.state,
+        country: addressData.country,
+        pincode: addressData.pincode,
+        isDefault: addressData.isDefault
+      };
+
+      const res = await API.post('/user/address', payload);
+
+      if (res.status === 201 || res.status === 200 || res.data?.success) {
+        alert('Address added successfully!');
+        navigate('/manage-address'); 
+      }
+    } catch (error) {
+      console.error('Error adding address:', error);
+      setErrorMsg(error.response?.data?.message || 'Failed to add address. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleLogout = () => {
+    localStorage.clear();
     navigate('/login');
   };
 
   return (
     <div className="account-page">
-      {/* Header */}
-      <header className="auth-navbar">
-        <nav className="nav-links">
-          <Link to="/">Home</Link>
-          <a href="#shop">Shop</a>
-          <a href="#contact">Contact Us</a>
-          <a href="#about">About Us</a>
-        </nav>
-
-        <div className="logo">
-          <span>🎒 BagHub</span>
-        </div>
-
-        <div className="nav-icons">
-          <span>🛒</span>
-          <span>👤</span>
-          <span>❤️</span>
-        </div>
-      </header>
-
-      {/* Main Content Area */}
       <main className="account-wrapper">
         <div className="account-container">
           
@@ -66,10 +78,10 @@ const AddAddress = () => {
                 <Link to="/profile">👤 Personal Information</Link>
               </li>
               <li className="active">
-                <Link to="/manage-address">📱 Address</Link>
+                <Link to="/manage-address">📍 Address</Link>
               </li>
               <li>
-                <Link to="/orders">📦 Order</Link>
+                <Link to="/my-orders">📦 Order</Link>
               </li>
               <li>
                 <Link to="/wallet">💳 Wallet</Link>
@@ -85,7 +97,7 @@ const AddAddress = () => {
               </li>
               <li>
                 <button onClick={handleLogout} className="logout-btn">
-                  🔄 Logout
+                  🚪 Logout
                 </button>
               </li>
             </ul>
@@ -96,9 +108,43 @@ const AddAddress = () => {
             <div className="content-card">
               <h2 className="content-title">Add New Address</h2>
 
+              {errorMsg && <div className="error-banner" style={{ color: 'red', marginBottom: '10px' }}>{errorMsg}</div>}
+
               <form onSubmit={handleSubmit} className="add-address-form">
+                
+                {/* Full Name & Phone Number */}
+                <div className="form-row">
+                  <div className="form-group">
+                    <label htmlFor="name">Full Name</label>
+                    <input
+                      type="text"
+                      id="name"
+                      name="name"
+                      value={addressData.name}
+                      onChange={handleChange}
+                      className="account-input"
+                      required
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label htmlFor="phone">Phone Number</label>
+                    <input
+                      type="tel"
+                      id="phone"
+                      name="phone"
+                      pattern="[0-9]{10}"
+                      placeholder="10-digit phone number"
+                      value={addressData.phone}
+                      onChange={handleChange}
+                      className="account-input"
+                      required
+                    />
+                  </div>
+                </div>
+
                 <div className="form-group">
-                  <label htmlFor="houseName">House Name</label>
+                  <label htmlFor="houseName">House Name / Flat No.</label>
                   <input
                     type="text"
                     id="houseName"
@@ -111,7 +157,7 @@ const AddAddress = () => {
                 </div>
 
                 <div className="form-group">
-                  <label htmlFor="locality">Locality/Street</label>
+                  <label htmlFor="locality">Locality / Street</label>
                   <input
                     type="text"
                     id="locality"
@@ -124,7 +170,7 @@ const AddAddress = () => {
                 </div>
 
                 <div className="form-group">
-                  <label htmlFor="city">Town/City</label>
+                  <label htmlFor="city">Town / City</label>
                   <input
                     type="text"
                     id="city"
@@ -170,6 +216,8 @@ const AddAddress = () => {
                     type="text"
                     id="pincode"
                     name="pincode"
+                    pattern="[0-9]{6}"
+                    placeholder="6-digit pincode"
                     value={addressData.pincode}
                     onChange={handleChange}
                     className="account-input"
@@ -178,8 +226,8 @@ const AddAddress = () => {
                 </div>
 
                 <div className="form-action">
-                  <button type="submit" className="save-btn">
-                    Save
+                  <button type="submit" className="save-btn" disabled={loading}>
+                    {loading ? 'Saving...' : 'Save Address'}
                   </button>
                 </div>
               </form>
@@ -188,56 +236,6 @@ const AddAddress = () => {
 
         </div>
       </main>
-
-      {/* Footer */}
-      <footer className="footer">
-        <div className="footer-logo">
-          <h2>🎒 BagHub</h2>
-        </div>
-        <div className="footer-content">
-          <div className="footer-col">
-            <h4>SHOP</h4>
-            <ul>
-              <li><a href="#indoor">Indoor Plants</a></li>
-              <li><a href="#outdoor">Outdoor Plants</a></li>
-            </ul>
-          </div>
-          <div className="footer-col">
-            <h4>SUPPORT</h4>
-            <ul>
-              <li><a href="#status">Order Status</a></li>
-              <li><a href="#support">Product Support</a></li>
-              <li><a href="#shipping">Shipping & Return Policy</a></li>
-              <li><a href="#complaint">Complaint Registration</a></li>
-            </ul>
-          </div>
-          <div className="footer-col">
-            <h4>About Us</h4>
-            <ul>
-              <li><a href="#contact">Contact Us</a></li>
-              <li><a href="#privacy">Privacy Policy</a></li>
-              <li><a href="#terms">Terms of use</a></li>
-              <li><a href="#faq">FAQ</a></li>
-            </ul>
-          </div>
-          <div className="footer-col">
-            <h4>Contact</h4>
-            <p><strong>Email :</strong> baghub@gmail.com</p>
-            <p><strong>Phone :</strong> +91 8888888888</p>
-          </div>
-          <div className="footer-col">
-            <h4>Connect with us</h4>
-            <div className="social-icons">
-              <span>📷</span>
-              <span>📘</span>
-              <span>🐦</span>
-            </div>
-          </div>
-        </div>
-        <div className="footer-bottom">
-          <p>© 2026 baghub . All Rights Reserved.</p>
-        </div>
-      </footer>
     </div>
   );
 };

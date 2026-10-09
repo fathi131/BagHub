@@ -3,11 +3,12 @@ import ReactDOM from 'react-dom/client';
 import App from './App.jsx';
 import './index.css';
 import { GoogleOAuthProvider } from '@react-oauth/google';
+import { prepareFacebookSdk } from './services/socialAuth';
 
 const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-
-
-console.log("Google Client ID:", clientId);
+if (import.meta.env.VITE_FACEBOOK_APP_ID) {
+  prepareFacebookSdk().catch(() => {});
+}
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>

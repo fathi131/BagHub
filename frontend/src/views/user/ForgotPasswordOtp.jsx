@@ -1,12 +1,11 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import axios from 'axios';
+import API from '../../api/axios';
 import './OtpVerification.css'; 
 
 const ForgotPasswordOtp = () => {
   const [otp, setOtp] = useState(['', '', '', '']);
   const [timer, setTimer] = useState(60);
-  const [canResend, setCanResend] = useState(false);
   const [message, setMessage] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   const [loading, setLoading] = useState(false);
@@ -17,15 +16,11 @@ const ForgotPasswordOtp = () => {
 
  
   const email = location.state?.email;
+  const canResend = timer === 0;
 
   useEffect(() => {
-    let interval = null;
-    if (timer > 0) {
-      interval = setInterval(() => setTimer((prev) => prev - 1), 1000);
-    } else {
-      setCanResend(true);
-      clearInterval(interval);
-    }
+    if (timer <= 0) return undefined;
+    const interval = setInterval(() => setTimer((prev) => Math.max(prev - 1, 0)), 1000);
     return () => clearInterval(interval);
   }, [timer]);
 
@@ -60,12 +55,11 @@ const ForgotPasswordOtp = () => {
     setErrorMsg('');
 
     try {
-      const response = await axios.post('http://localhost:5000/api/user/resend-otp', { email });
+      const response = await API.post('/user/forgot-password/resend-otp', { email });
 
       if (response.status === 200) {
         setMessage('New OTP sent to your email!');
         setTimer(60);
-        setCanResend(false);
         setOtp(['', '', '', '']);
       }
     } catch (error) {
@@ -101,17 +95,15 @@ const ForgotPasswordOtp = () => {
 
     try {
      
-      const response = await axios.post('http://localhost:5000/api/user/verify-otp', {
+      const response = await API.post('/user/forgot-password/verify-otp', {
         email,
         otp: enteredOtp
       });
 
       if (response.status === 200) {
         setMessage('OTP Verified successfully!');
-        
-       
         setTimeout(() => {
-          navigate('/reset-password', { state: { email, otp: enteredOtp } });
+          navigate('/reset-password', { state: { email, resetToken: response.data.resetToken } });
         }, 1000);
       }
     } catch (error) {

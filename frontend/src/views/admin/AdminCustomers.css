@@ -51,18 +51,25 @@
 }
 
 .add-user-btn {
-  background-color: #4a4a4a;
-  color: #fff;
+  background-color: #004d40;
+  color: #ffffff;
   border: none;
   padding: 9px 18px;
   border-radius: 6px;
   font-weight: 600;
   cursor: pointer;
   font-size: 14px;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .add-user-btn:hover {
-  background-color: #333;
+  background-color: #00332c; 
+  transform: translateY(-1px);
+}
+
+.add-user-btn:active {
+  transform: translateY(0);
 }
 
 .customers-table {

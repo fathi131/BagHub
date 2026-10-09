@@ -1,12 +1,12 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
+import API from '../../api/axios';
 import './OtpVerification.css';
 
 const OtpVerification = () => {
   const [otp, setOtp] = useState(['', '', '', '']);
   const [timer, setTimer] = useState(60);
-  const [canResend, setCanResend] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
@@ -16,19 +16,12 @@ const OtpVerification = () => {
 
   const oldEmail = location.state?.oldEmail;
   const newEmail = location.state?.newEmail || location.state?.email || '';
-  const username = location.state?.username;
   const isEmailChange = location.state?.isEmailChange || false;
+  const canResend = timer === 0;
 
   useEffect(() => {
-    let interval = null;
-    if (timer > 0) {
-      interval = setInterval(() => {
-        setTimer((prev) => prev - 1);
-      }, 1000);
-    } else {
-      setCanResend(true);
-      clearInterval(interval);
-    }
+    if (timer <= 0) return undefined;
+    const interval = setInterval(() => setTimer((prev) => Math.max(prev - 1, 0)), 1000);
     return () => clearInterval(interval);
   }, [timer]);
 
@@ -63,19 +56,12 @@ const OtpVerification = () => {
     try {
       setErrorMsg('');
       
-      const endpoint = isEmailChange
-        ? 'http://localhost:5000/api/user/send-email-otp'
-        : 'http://localhost:5000/api/user/resend-otp';
-
-      const payload = isEmailChange
-        ? { emailToSend: targetEmail, newEmail }
-        : { email: targetEmail };
-
-      const res = await axios.post(endpoint, payload);
+      const res = isEmailChange
+        ? await API.post('/user/send-email-otp', { newEmail })
+        : await axios.post('http://localhost:5000/api/user/resend-otp', { email: targetEmail });
 
       alert(res.data.message || 'New OTP sent to your email!');
       setTimer(60);
-      setCanResend(false);
       setOtp(['', '', '', '']);
     } catch (err) {
       setErrorMsg(err.response?.data?.message || 'Failed to resend OTP');
@@ -97,15 +83,10 @@ const OtpVerification = () => {
       setErrorMsg('');
 
       if (isEmailChange) {
-        const res = await axios.post('http://localhost:5000/api/user/verify-email-otp', {
-          oldEmail,
-          newEmail,
-          otp: enteredOtp
-        });
+        const res = await API.post('/user/verify-email-otp', { otp: enteredOtp });
 
         if (res.status === 200 || res.data.success) {
-          const updatedUser = { name: username, email: newEmail };
-          localStorage.setItem('user', JSON.stringify(updatedUser));
+          localStorage.setItem('user', JSON.stringify(res.data.user));
 
           alert('Email updated successfully!');
           navigate('/profile');
